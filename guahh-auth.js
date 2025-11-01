@@ -1,5 +1,6 @@
 // Guahh Account Authentication Library (guahh-auth.js)
 const GuahhAuth = () => {
+    // This is the URL to your login page on GitHub.
     const GUAHH_LOGIN_URL = 'https://guahhinc.github.io/accounts/index.html';
     const userStorageKey = 'guahhUser';
 
@@ -13,6 +14,7 @@ const GuahhAuth = () => {
         return new Promise((resolve, reject) => {
             let loginUrl = new URL(GUAHH_LOGIN_URL);
             
+            // Add the serviceName to the popup URL if it was provided.
             if (options.serviceName) {
                 loginUrl.searchParams.append('serviceName', options.serviceName);
             }
@@ -21,15 +23,19 @@ const GuahhAuth = () => {
             const popup = window.open(loginUrl.href, 'guahhLogin', `width=${width},height=${height},top=${top},left=${left}`);
 
             const messageListener = (event) => {
-                if (event.origin !== new URL(GUAHH_LOGIN_URL).origin) return;
+                // Security check: only accept messages from our login page.
+                if (event.origin !== loginUrl.origin) return;
+                
+                // If the login was successful...
                 if (event.data && event.data.type === 'GUAHH_LOGIN_SUCCESS') {
                     const user = event.data.user;
                     localStorage.setItem(userStorageKey, JSON.stringify(user));
-                    cleanup();
-                    resolve(user);
+                    cleanup(); // Close the popup and listeners.
+                    resolve(user); // Send the user data back to the project.
                 }
             };
 
+            // This interval checks if the user manually closed the popup.
             const interval = setInterval(() => {
                 if (popup.closed) {
                     cleanup();
@@ -37,6 +43,7 @@ const GuahhAuth = () => {
                 }
             }, 500);
 
+            // A helper function to clean up the listeners and popup.
             function cleanup() {
                 clearInterval(interval);
                 window.removeEventListener('message', messageListener);
@@ -56,6 +63,7 @@ const GuahhAuth = () => {
         return savedUser ? JSON.parse(savedUser) : null;
     };
     
+    // Make the functions available globally.
     return { login, logout, getCurrentUser };
 };
 
