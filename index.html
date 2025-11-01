@@ -40,41 +40,127 @@
         <div id="account-view" style="display: none;"><img id="acc-pfp" src="" alt="Profile Picture"><h2 id="acc-displayname"></h2><p id="acc-username"></p><div class="details"><p><strong>Email:</strong> <span id="acc-email"></span></p><p><strong>Description:</strong> <span id="acc-desc"></span></p><p><strong>Linked Services:</strong> <span id="acc-services"></span></p></div><button onclick="logout()">Logout</button></div>
     </div>
 
-    <script>
+<script>
         // --- CONFIGURATION ---
         const webAppUrl = "https://script.google.com/macros/s/AKfycbxJFwty5ELkJhLDXsOr86fvLts6h7Vff9Bbs24674mhGxTWrHNhttMoXgjtC3U_MsYC6A/exec";
 
-        // --- DOM ELEMENTS AND LOGIC ---
-        const loginView = document.getElementById('login-view'), createView = document.getElementById('create-view'), accountView = document.getElementById('account-view');
-        const createForm = document.getElementById('create-form'), loginForm = document.getElementById('login-form');
-        const createMessage = document.getElementById('create-message'), loginMessage = document.getElementById('login-message');
+        // --- DOM ELEMENTS & INITIAL STATE ---
+        const loginView = document.getElementById('login-view');
+        const createView = document.getElementById('create-view');
+        const accountView = document.getElementById('account-view');
+        const createForm = document.getElementById('create-form');
+        const loginForm = document.getElementById('login-form');
+        const createMessage = document.getElementById('create-message');
+        const loginMessage = document.getElementById('login-message');
         const isPopup = (window.opener && window.opener !== window);
-
-        function showView(viewName) { [loginView, createView, accountView].forEach(v => v.style.display = 'none'); document.getElementById(viewName).style.display = 'block'; }
-        function showMessage(el, text, isSuccess) { el.textContent = text; el.className = `message ${isSuccess ? 'success' : 'error'}`; el.style.display = 'block'; }
-        function populateAccountView(user) { document.getElementById('acc-pfp').src = user.ProfilePictureURL || 'https://via.placeholder.com/100'; document.getElementById('acc-displayname').textContent = user.DisplayName; document.getElementById('acc-username').textContent = `@${user.Username}`; document.getElementById('acc-email').textContent = user.Email; document.getElementById('acc-desc').textContent = user.Description || 'N/A'; document.getElementById('acc-services').textContent = user.LinkedServices || 'N/A'; showView('account-view'); }
         
+        // ** THIS IS THE CRITICAL FIX **
+        // We read the serviceName from the page's URL when it first loads.
+        const serviceNameFromUrl = new URLSearchParams(window.location.search).get('serviceName');
+
+        // --- HELPER FUNCTIONS ---
+        function showView(viewName) {
+            [loginView, createView, accountView].forEach(v => v.style.display = 'none');
+            document.getElementById(viewName).style.display = 'block';
+        }
+
+        function showMessage(el, text, isSuccess) {
+            el.textContent = text;
+            el.className = `message ${isSuccess ? 'success' : 'error'}`;
+            el.style.display = 'block';
+        }
+
+        function populateAccountView(user) {
+            document.getElementById('acc-pfp').src = user.ProfilePictureURL || 'https://via.placeholder.com/100';
+            document.getElementById('acc-displayname').textContent = user.DisplayName;
+            document.getElementById('acc-username').textContent = `@${user.Username}`;
+            document.getElementById('acc-email').textContent = user.Email;
+            document.getElementById('acc-desc').textContent = user.Description || 'N/A';
+            document.getElementById('acc-services').textContent = user.LinkedServices || 'No services linked.';
+            showView('account-view');
+        }
+        
+        // --- EVENT LISTENERS ---
         createForm.addEventListener('submit', e => {
-            e.preventDefault(); const btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Creating...';
-            fetch(webAppUrl, { method: 'POST', body: new FormData(createForm) }).then(res => res.json()).then(data => {
-                if (data.result === 'success') { showMessage(createMessage, 'Account created! Please log in.', true); createForm.reset(); } else { showMessage(createMessage, 'Error: ' + data.error, false); }
-            }).catch(err => showMessage(createMessage, 'Network Error: ' + err.message, false)).finally(() => { btn.disabled = false; btn.textContent = 'Create Account'; });
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+            fetch(webAppUrl, { method: 'POST', body: new FormData(createForm) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.result === 'success') {
+                        showMessage(createMessage, 'Account created! Please log in.', true);
+                        createForm.reset();
+                    } else {
+                        showMessage(createMessage, 'Error: ' + data.error, false);
+                    }
+                })
+                .catch(err => showMessage(createMessage, 'Network Error: ' + err.message, false))
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Create Account';
+                });
         });
 
         loginForm.addEventListener('submit', e => {
-            e.preventDefault(); const btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Logging in...';
-            const url = `${webAppUrl}?action=login&loginIdentifier=${encodeURIComponent(e.target.loginIdentifier.value)}&password=${encodeURIComponent(e.target.password.value)}`;
-            fetch(url).then(res => res.json()).then(data => {
-                if (data.result === 'success') {
-                    if (isPopup) { window.opener.postMessage({ type: 'GUAHH_LOGIN_SUCCESS', user: data.user }, '*'); } else { localStorage.setItem('guahhUser', JSON.stringify(data.user)); populateAccountView(data.user); }
-                } else { showMessage(loginMessage, data.message || 'Unknown error.', false); }
-            }).catch(err => showMessage(loginMessage, 'Network Error: ' + err.message, false)).finally(() => { btn.disabled = false; btn.textContent = 'Login'; });
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+            
+            // Build the URL to send to the backend.
+            let url = new URL(webAppUrl);
+            url.searchParams.append('action', 'login');
+            url.searchParams.append('loginIdentifier', e.target.loginIdentifier.value);
+            url.searchParams.append('password', e.target.password.value);
+            
+            // ** THIS IS THE CRITICAL FIX **
+            // We now correctly add the serviceName to the request we send to Google Apps Script.
+            if (serviceNameFromUrl) {
+                url.searchParams.append('serviceName', serviceNameFromUrl);
+            }
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.result === 'success') {
+                        if (isPopup) {
+                            window.opener.postMessage({ type: 'GUAHH_LOGIN_SUCCESS', user: data.user }, '*');
+                        } else {
+                            localStorage.setItem('guahhUser', JSON.stringify(data.user));
+                            populateAccountView(data.user);
+                        }
+                    } else {
+                        showMessage(loginMessage, data.message || 'Unknown error.', false);
+                    }
+                })
+                .catch(err => showMessage(loginMessage, 'Network Error: ' + err.message, false))
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Login';
+                });
         });
 
-        function logout() { localStorage.removeItem('guahhUser'); loginForm.reset(); loginMessage.style.display = 'none'; showView('login-view'); }
+        function logout() {
+            localStorage.removeItem('guahhUser');
+            loginForm.reset();
+            loginMessage.style.display = 'none';
+            showView('login-view');
+        }
         
+        // --- INITIAL PAGE LOAD ---
         document.addEventListener('DOMContentLoaded', () => {
-            if (isPopup) { showView('login-view'); } else { const u = localStorage.getItem('guahhUser'); if (u) { populateAccountView(JSON.parse(u)); } else { showView('login-view'); } }
+            if (isPopup) {
+                showView('login-view');
+            } else {
+                const u = localStorage.getItem('guahhUser');
+                if (u) {
+                    populateAccountView(JSON.parse(u));
+                } else {
+                    showView('login-view');
+                }
+            }
         });
     </script>
 </body>
