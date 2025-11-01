@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guahh Account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter Tight', sans-serif; background-color: #f4f4f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 2rem 0; }
+        .container { background-color: white; padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); width: 100%; max-width: 420px; }
+        h1 { text-align: center; color: #18181b; margin-top: 0; }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #52525b; font-weight: 600; }
+        input, textarea { width: 100%; padding: 0.75rem; border: 1px solid #d4d4d8; border-radius: 4px; box-sizing: border-box; font-family: 'Inter Tight', sans-serif; }
+        button { width: 100%; padding: 0.85rem; border: none; background-color: #18181b; color: white; border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: 600; }
+        button:disabled { background-color: #a1a1aa; cursor: not-allowed; }
+        button:hover:not(:disabled) { background-color: #27272a; }
+        .message { text-align: center; margin-top: 1rem; padding: 0.75rem; border-radius: 4px; display: none; font-size: 0.9rem; word-wrap: break-word; }
+        .message.success { color: #15803d; background-color: #dcfce7; }
+        .message.error { color: #b91c1c; background-color: #fee2e2; }
+        .view-switcher { text-align: center; margin-top: 1.5rem; color: #52525b; }
+        .view-switcher a { color: #18181b; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .view-switcher a:hover { text-decoration: underline; }
+        #account-view { text-align: center; }
+        #account-view img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; border: 3px solid #e4e4e7; }
+        #account-view h2 { margin-bottom: 0.5rem; }
+        #account-view p { color: #52525b; margin-top: 0; margin-bottom: 1.5rem; }
+        #account-view .details { text-align: left; word-break: break-all; }
+        #account-view .details p { background-color: #f4f4f5; padding: 0.75rem; border-radius: 4px; margin-bottom: 0.75rem; color: #18181b; }
+        #account-view .details strong { color: #52525b; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- VIEWS OMITTED FOR BREVITY, THEY ARE IDENTICAL TO THE PREVIOUS VERSION -->
+        <div id="login-view"><h1>Login to Guahh</h1><form id="login-form"><div class="form-group"><label for="login-identifier">Email or Username</label><input type="text" id="login-identifier" name="loginIdentifier" required></div><div class="form-group"><label for="login-password">Password</label><input type="password" id="login-password" name="password" required></div><button type="submit">Login</button></form><p id="login-message" class="message"></p><div class="view-switcher">Don't have an account? <a onclick="showView('create-view')">Sign Up</a></div></div>
+        <div id="create-view" style="display: none;"><h1>Create Guahh Account</h1><form id="create-form"><div class="form-group"><label for="DisplayName">Display Name</label><input type="text" id="DisplayName" name="DisplayName" required></div><div class="form-group"><label for="Username">Username</label><input type="text" id="Username" name="Username" required></div><div class="form-group"><label for="Email">Email</label><input type="email" id="Email" name="Email" required></div><div class="form-group"><label for="Password">Password</label><input type="password" id="Password" name="Password" required></div><div class="form-group"><label for="ProfilePictureURL">Profile Picture URL</label><input type="url" id="ProfilePictureURL" name="ProfilePictureURL"></div><div class="form-group"><label for="Description">Description</label><textarea id="Description" name="Description" rows="3"></textarea></div><button type="submit">Create Account</button></form><p id="create-message" class="message"></p><div class="view-switcher">Already have an account? <a onclick="showView('login-view')">Login</a></div></div>
+        <div id="account-view" style="display: none;"><img id="acc-pfp" src="" alt="Profile Picture"><h2 id="acc-displayname"></h2><p id="acc-username"></p><div class="details"><p><strong>Email:</strong> <span id="acc-email"></span></p><p><strong>Description:</strong> <span id="acc-desc"></span></p><p><strong>Linked Services:</strong> <span id="acc-services"></span></p></div><button onclick="logout()">Logout</button></div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbxJFwty5ELkJhLDXsOr86fvLts6h7Vff9Bbs24674mhGxTWrHNhttMoXgjtC3U_MsYC6A/exec";
+
+        // --- DOM ELEMENTS AND LOGIC ---
+        const loginView = document.getElementById('login-view'), createView = document.getElementById('create-view'), accountView = document.getElementById('account-view');
+        const createForm = document.getElementById('create-form'), loginForm = document.getElementById('login-form');
+        const createMessage = document.getElementById('create-message'), loginMessage = document.getElementById('login-message');
+        const isPopup = (window.opener && window.opener !== window);
+
+        function showView(viewName) { [loginView, createView, accountView].forEach(v => v.style.display = 'none'); document.getElementById(viewName).style.display = 'block'; }
+        function showMessage(el, text, isSuccess) { el.textContent = text; el.className = `message ${isSuccess ? 'success' : 'error'}`; el.style.display = 'block'; }
+        function populateAccountView(user) { document.getElementById('acc-pfp').src = user.ProfilePictureURL || 'https://via.placeholder.com/100'; document.getElementById('acc-displayname').textContent = user.DisplayName; document.getElementById('acc-username').textContent = `@${user.Username}`; document.getElementById('acc-email').textContent = user.Email; document.getElementById('acc-desc').textContent = user.Description || 'N/A'; document.getElementById('acc-services').textContent = user.LinkedServices || 'N/A'; showView('account-view'); }
+        
+        createForm.addEventListener('submit', e => {
+            e.preventDefault(); const btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Creating...';
+            fetch(webAppUrl, { method: 'POST', body: new FormData(createForm) }).then(res => res.json()).then(data => {
+                if (data.result === 'success') { showMessage(createMessage, 'Account created! Please log in.', true); createForm.reset(); } else { showMessage(createMessage, 'Error: ' + data.error, false); }
+            }).catch(err => showMessage(createMessage, 'Network Error: ' + err.message, false)).finally(() => { btn.disabled = false; btn.textContent = 'Create Account'; });
+        });
+
+        loginForm.addEventListener('submit', e => {
+            e.preventDefault(); const btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Logging in...';
+            const url = `${webAppUrl}?action=login&loginIdentifier=${encodeURIComponent(e.target.loginIdentifier.value)}&password=${encodeURIComponent(e.target.password.value)}`;
+            fetch(url).then(res => res.json()).then(data => {
+                if (data.result === 'success') {
+                    if (isPopup) { window.opener.postMessage({ type: 'GUAHH_LOGIN_SUCCESS', user: data.user }, '*'); } else { localStorage.setItem('guahhUser', JSON.stringify(data.user)); populateAccountView(data.user); }
+                } else { showMessage(loginMessage, data.message || 'Unknown error.', false); }
+            }).catch(err => showMessage(loginMessage, 'Network Error: ' + err.message, false)).finally(() => { btn.disabled = false; btn.textContent = 'Login'; });
+        });
+
+        function logout() { localStorage.removeItem('guahhUser'); loginForm.reset(); loginMessage.style.display = 'none'; showView('login-view'); }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isPopup) { showView('login-view'); } else { const u = localStorage.getItem('guahhUser'); if (u) { populateAccountView(JSON.parse(u)); } else { showView('login-view'); } }
+        });
+    </script>
+</body>
+</html>
