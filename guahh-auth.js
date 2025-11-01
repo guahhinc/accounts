@@ -1,8 +1,8 @@
 // Guahh Account Authentication Library (guahh-auth.js)
 const GuahhAuth = () => {
     // --- Configuration ---
-    // This is the full URL to your Guahh Account index.html page, ONCE it is on GitHub.
-    const GUAHH_LOGIN_URL = '--- PASTE YOUR GITHUB PAGES URL TO INDEX.HTML HERE ---'; 
+    // This now points to the index.html file inside your 'accounts' repository.
+    const GUAHH_LOGIN_URL = 'https://guahhinc.github.io/accounts/index.html'; 
 
     const userStorageKey = 'guahhUser';
 
