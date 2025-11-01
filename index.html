@@ -7,100 +7,20 @@
 </head>
 <body>
     <div class="container">
-        <div id="login-view"><h1>Guahh Account</h1><form id="login-form"><div class="form-group"><label for="login-identifier">Email or Username</label><input type="text" id="login-identifier" name="loginIdentifier" required></div><div class="form-group"><label for="login-password">Password</label><input type="password" id="login-password" name="password" required></div><button type="submit">Login</button></form><p id="login-message" class="message"></p><div class="view-switcher">Don't have an account? <a onclick="showView('create-view')">Sign Up</a></div></div>
+        <!-- Login & Create Views -->
+        <div id="login-view"><h1>Login to Guahh</h1><form id="login-form"><div class="form-group"><label for="login-identifier">Email or Username</label><input type="text" id="login-identifier" name="loginIdentifier" required></div><div class="form-group"><label for="login-password">Password</label><input type="password" id="login-password" name="password" required></div><button type="submit">Login</button></form><p id="login-message" class="message"></p><div class="view-switcher">Don't have an account? <a onclick="showView('create-view')">Sign Up</a></div></div>
         <div id="create-view" style="display:none"><h1>Create Guahh Account</h1><form id="create-form"><div class="form-group"><label for="DisplayName">Display Name</label><input type="text" id="DisplayName" name="DisplayName" required></div><div class="form-group"><label for="Username">Username</label><input type="text" id="Username" name="Username" required></div><div class="form-group"><label for="Email">Email</label><input type="email" id="Email" name="Email" required></div><div class="form-group"><label for="Password">Password</label><input type="password" id="Password" name="Password" required></div><div class="form-group"><label for="ProfilePictureURL">Profile Picture URL</label><input type="url" id="ProfilePictureURL" name="ProfilePictureURL"></div><div class="form-group"><label for="Description">Description</label><textarea id="Description" name="Description" rows="3"></textarea></div><button type="submit">Create Account</button></form><p id="create-message" class="message"></p><div class="view-switcher">Already have an account? <a onclick="showView('login-view')">Login</a></div></div>
+
+        <!-- Account Details View -->
         <div id="account-view" style="display:none"><img id="acc-pfp" src="" alt="Profile Picture"><h2 id="acc-displayname"></h2><p id="acc-username"></p><div class="details"><p><strong>Balance:</strong> $<span id="acc-balance"></span></p><p><strong>Email:</strong> <span id="acc-email"></span></p><p><strong>Description:</strong> <span id="acc-desc"></span></p></div><button id="edit-account-btn">Edit Account</button><button class="secondary" onclick="logout()">Logout</button></div>
+        
+        <!-- Edit Account View -->
         <div id="edit-view" style="display:none"><h2>Edit Account</h2><form id="edit-form"><div class="form-group"><label for="edit-DisplayName">Display Name</label><input type="text" id="edit-DisplayName" name="DisplayName" required></div><div class="form-group"><label for="edit-ProfilePictureURL">Profile Picture URL</label><input type="url" id="edit-ProfilePictureURL" name="ProfilePictureURL"></div><div class="form-group"><label for="edit-Description">Description</label><textarea id="edit-Description" name="Description" rows="3"></textarea></div><button type="submit">Save Changes</button></form><p id="edit-message" class="message"></p><button class="secondary" onclick="showView('account-view')">Back to Account</button></div>
     </div>
 
     <script>
         const webAppUrl = "https://script.google.com/macros/s/AKfycbxJFwty5ELkJhLDXsOr86fvLts6h7Vff9Bbs24674mhGxTWrHNhttMoXgjtC3U_MsYC6A/exec";
-        const views = { login: document.getElementById("login-view"), create: document.getElementById("create-view"), account: document.getElementById("account-view"), edit: document.getElementById("edit-view") };
-        const createForm = document.getElementById("create-form"), loginForm = document.getElementById("login-form"), editForm = document.getElementById("edit-form");
-        const isPopup = (window.opener && window.opener !== window);
-        let currentUser = null;
-
-        function showView(viewName) { Object.values(views).forEach(view => view.style.display = "none"); views[viewName].style.display = "block"; }
-        function showMessage(elementId, text, isSuccess) { const el = document.getElementById(elementId); el.textContent = text; el.className = `message ${isSuccess ? 'success' : 'error'}`; el.style.display = "block"; }
-
-        function populateAccountView(user) {
-            if (!user) return;
-            currentUser = user;
-            const balance = parseFloat(user.Balance || 0).toFixed(2);
-            document.getElementById("acc-pfp").src = user.ProfilePictureURL || "https://via.placeholder.com/100";
-            document.getElementById("acc-displayname").textContent = user.DisplayName;
-            document.getElementById("acc-username").textContent = `@${user.Username}`;
-            document.getElementById("acc-balance").textContent = balance;
-            document.getElementById("acc-email").textContent = user.Email;
-            document.getElementById("acc-desc").textContent = user.Description || "N/A";
-            showView("account");
-        }
-
-        document.getElementById("edit-account-btn").addEventListener("click", () => {
-            if (!currentUser) return;
-            document.getElementById("edit-DisplayName").value = currentUser.DisplayName;
-            document.getElementById("edit-ProfilePictureURL").value = currentUser.ProfilePictureURL;
-            document.getElementById("edit-Description").value = currentUser.Description;
-            showView("edit");
-        });
-
-        createForm.addEventListener("submit", e => {
-            e.preventDefault();
-            const btn = e.target.querySelector("button"); btn.disabled = true; btn.textContent = "Creating...";
-            fetch(webAppUrl, { method: "POST", body: new FormData(createForm) })
-                .then(res => res.json())
-                .then(data => { data.result === "success" ? (showMessage("create-message", "Account created! Please log in.", true), createForm.reset()) : showMessage("create-message", "Error: " + data.error, false); })
-                .catch(err => showMessage("create-message", "Network Error: " + err.message, false))
-                .finally(() => { btn.disabled = false; btn.textContent = "Create Account"; });
-        });
-
-        loginForm.addEventListener("submit", e => {
-            e.preventDefault();
-            const btn = e.target.querySelector("button"); btn.disabled = true; btn.textContent = "Logging in...";
-            let url = new URL(webAppUrl);
-            url.searchParams.append("action", "login");
-            url.search_params.append("loginIdentifier", e.target.loginIdentifier.value);
-            url.search_params.append("password", e.target.password.value);
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.result === "success") {
-                        if (isPopup) {
-                            window.opener.postMessage({ type: 'GUAHH_LOGIN_SUCCESS', user: data.user }, '*');
-                        } else {
-                            localStorage.setItem("guahhUser", JSON.stringify(data.user));
-                            populateAccountView(data.user);
-                        }
-                    } else { showMessage("login-message", data.message || "Unknown error.", false); }
-                })
-                .catch(err => showMessage("login-message", "Network Error: " + err.message, false))
-                .finally(() => { btn.disabled = false; btn.textContent = "Login"; });
-        });
-        
-        editForm.addEventListener("submit", e => {
-            e.preventDefault();
-            if (!currentUser) return;
-            const btn = e.target.querySelector("button"); btn.disabled = true; btn.textContent = "Saving...";
-            const formData = new FormData(editForm);
-            formData.append("action", "update");
-            formData.append("UserID", currentUser.UserID);
-            fetch(webAppUrl, { method: "POST", body: formData })
-                .then(res => res.json())
-                .then(data => { data.result === "success" ? (localStorage.setItem("guahhUser", JSON.stringify(data.user)), populateAccountView(data.user)) : showMessage("edit-message", "Error: " + data.error, false); })
-                .catch(err => showMessage("edit-message", "Network Error: " + err.message, false))
-                .finally(() => { btn.disabled = false; btn.textContent = "Save Changes"; });
-        });
-
-        function logout() { localStorage.removeItem("guahhUser"); currentUser = null; loginForm.reset(); showView("login"); }
-        
-        document.addEventListener("DOMContentLoaded", () => {
-            if (isPopup) {
-                showView("login");
-            } else {
-                const savedUser = JSON.parse(localStorage.getItem("guahhUser") || "null");
-                savedUser ? populateAccountView(savedUser) : showView("login");
-            }
-        });
+        const views={login:document.getElementById("login-view"),create:document.getElementById("create-view"),account:document.getElementById("account-view"),edit:document.getElementById("edit-view")},createForm=document.getElementById("create-form"),loginForm=document.getElementById("login-form"),editForm=document.getElementById("edit-form"),isPopup=window.opener&&window.opener!==window,serviceNameFromUrl=new URLSearchParams(window.location.search).get("serviceName");let currentUser=null;function showView(e){Object.values(views).forEach(e=>e.style.display="none"),views[e].style.display="block"}function showMessage(e,t,o){const n=document.getElementById(e);n.textContent=t,n.className=`message ${o?"success":"error"}`,n.style.display="block"}function populateAccountView(e){if(!e)return;currentUser=e;const t=parseFloat(e.Balance||0).toFixed(2);document.getElementById("acc-pfp").src=e.ProfilePictureURL||"https://via.placeholder.com/100",document.getElementById("acc-displayname").textContent=e.DisplayName,document.getElementById("acc-username").textContent=`@${e.Username}`,document.getElementById("acc-balance").textContent=t,document.getElementById("acc-email").textContent=e.Email,document.getElementById("acc-desc").textContent=e.Description||"N/A",showView("account")}document.getElementById("edit-account-btn").addEventListener("click",()=>{currentUser&&(document.getElementById("edit-DisplayName").value=currentUser.DisplayName,document.getElementById("edit-ProfilePictureURL").value=currentUser.ProfilePictureURL,document.getElementById("edit-Description").value=currentUser.Description,showView("edit"))}),createForm.addEventListener("submit",e=>{e.preventDefault();const t=e.target.querySelector("button");t.disabled=!0,t.textContent="Creating...",fetch(webAppUrl,{method:"POST",body:new FormData(createForm)}).then(e=>e.json()).then(e=>{"success"===e.result?(showMessage("create-message","Account created! Please log in.",!0),createForm.reset()):showMessage("create-message","Error: "+e.error,!1)}).catch(e=>showMessage("create-message","Network Error: "+e.message,!1)).finally(()=>{t.disabled=!1,t.textContent="Create Account"})}),loginForm.addEventListener("submit",e=>{e.preventDefault();const t=e.target.querySelector("button");t.disabled=!0,t.textContent="Logging in...";let o=new URL(webAppUrl);o.searchParams.append("action","login"),o.searchParams.append("loginIdentifier",e.target.loginIdentifier.value),o.searchParams.append("password",e.target.password.value),serviceNameFromUrl&&o.searchParams.append("serviceName",serviceNameFromUrl),fetch(o).then(e=>e.json()).then(e=>{"success"===e.result?isPopup?window.opener.postMessage({type:"GUAHH_LOGIN_SUCCESS",user:e.user},"*"):(localStorage.setItem("guahhUser",JSON.stringify(e.user)),populateAccountView(e.user)):showMessage("login-message",e.message||"Unknown error.",!1)}).catch(e=>showMessage("login-message","Network Error: "+e.message,!1)).finally(()=>{t.disabled=!1,t.textContent="Login"})}),editForm.addEventListener("submit",e=>{e.preventDefault();if(!currentUser)return;const t=e.target.querySelector("button");t.disabled=!0,t.textContent="Saving...";const o=new FormData(editForm);o.append("action","update"),o.append("UserID",currentUser.UserID),fetch(webAppUrl,{method:"POST",body:o}).then(e=>e.json()).then(e=>{"success"===e.result?(localStorage.setItem("guahhUser",JSON.stringify(e.user)),populateAccountView(e.user)):showMessage("edit-message","Error: "+e.error,!1)}).catch(e=>showMessage("edit-message","Network Error: "+e.message,!1)).finally(()=>{t.disabled=!1,t.textContent="Save Changes"})});function logout(){localStorage.removeItem("guahhUser"),currentUser=null,loginForm.reset(),showView("login")}document.addEventListener("DOMContentLoaded",()=>{if(isPopup)return void showView("login");const e=JSON.parse(localStorage.getItem("guahhUser")||"null");e?populateAccountView(e):showView("login")});
     </script>
 </body>
 </html>
