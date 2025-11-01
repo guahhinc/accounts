@@ -5,7 +5,7 @@
     if (window.guahh) return;
 
     // ** PASTE YOUR NEW GUAHH ACCOUNT API URL HERE **
-    const GUAHH_API_URL = 'YOUR_NEW_GUAHH_ACCOUNT_API_URL';
+    const GUAHH_API_URL = 'https://script.google.com/macros/s/AKfycbxJFwty5ELkJhLDXsOr86fvLts6h7Vff9Bbs24674mhGxTWrHNhttMoXgjtC3U_MsYC6A/exec';
     
     // This is the URL to the visual login page on GitHub.
     const GUAHH_LOGIN_PAGE_URL = 'https://guahhinc.github.io/accounts/index.html';
